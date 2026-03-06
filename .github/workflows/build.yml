@@ -27,12 +27,8 @@ jobs:
 
       - name: Add Package
         run: |
-          # 1. 在 SDK 中创建插件目录
           mkdir -p sdk/package/luci-app-autoredial
-          
-          # 2. 将仓库根目录下的所有文件复制到 SDK 插件目录中
-          # 解释：因为你的代码在根目录，所以我们要复制当前目录(.)的内容
-          # 排除 sdk 文件夹本身，防止递归复制
+          # 将根目录下的代码复制到 SDK 中
           find . -maxdepth 1 ! -name '.' ! -name 'sdk' ! -name '.git' ! -name '.github' -exec cp -r {} sdk/package/luci-app-autoredial/ \;
 
       - name: Compile
@@ -40,11 +36,14 @@ jobs:
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          
+          # 【修复关键】生成默认配置，防止触发 menuconfig 导致报错
+          make defconfig
+          
           make package/luci-app-autoredial/compile V=s
 
       - name: Upload IPK
         uses: actions/upload-artifact@v4
         with:
           name: openwrt-rockchip-ipk
-          # 使用通配符 ** 自动查找生成的 ipk 文件
           path: sdk/bin/**/*.ipk
