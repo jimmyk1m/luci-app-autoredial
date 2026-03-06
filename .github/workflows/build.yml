@@ -17,7 +17,8 @@ jobs:
       - name: Prepare Environment
         run: |
           sudo apt update
-          sudo apt install -y build-essential libncurses-dev bc flex bison zstd
+          # 修复：添加 python3-elftools 解决 "Please install the Python3 elftools module" 错误
+          sudo apt install -y build-essential libncurses-dev bc flex bison zstd python3-elftools
 
       - name: Download OpenWrt SDK
         run: |
@@ -37,7 +38,7 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           
-          # 【修复关键】生成默认配置，防止触发 menuconfig 导致报错
+          # 生成默认配置，防止触发 menuconfig
           make defconfig
           
           make package/luci-app-autoredial/compile V=s
