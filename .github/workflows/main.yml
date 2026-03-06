@@ -16,8 +16,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      SNAPSDK_URL: ${{ github.event.inputs.snapsdk-url || 'https://downloads.openwrt.org/releases/25.12.0/targets/rockchip/armv8/openwrt-sdk-25.12.0-rockchip-armv8_gcc-14.3.0_musl.Linux-x86_64.tar.zst' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,12 +45,15 @@ jobs:
 
       - name: Download Snapshot OpenWrt SDK
         run: |
+          DEFAULT_SNAP_URL="https://downloads.openwrt.org/releases/25.12.0/targets/rockchip/armv8/openwrt-sdk-25.12.0-rockchip-armv8_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
+          INPUT_SNAP="${{ github.event.inputs.snapsdk-url }}"
+          FINAL_SNAP_URL="${INPUT_SNAP:-$DEFAULT_SNAP_URL}"
+          echo "Using Snapshot SDK: $FINAL_SNAP_URL"
           mkdir -p /tmp/SNAPSDK
-          curl -SLk --connect-timeout 30 --retry 2 \
-            "${{ inputs.snapsdk-url || github.event.inputs.snapsdk-url }}" \
-            -o /tmp/SNAPSDK.tar.zst
-          zstd -d /tmp/SNAPSDK.tar.zst
+          curl -SLk --connect-timeout 30 --retry 2 "$FINAL_SNAP_URL" -o /tmp/SNAPSDK.tar.zst
+          zstd -d /tmp/SNAPSDK.tar.zst -o /tmp/SNAPSDK.tar
           tar xf /tmp/SNAPSDK.tar --strip-components=1 -C /tmp/SNAPSDK
+          echo "Snapshot SDK prepared."
 
       - name: Copy source into SDKs
         run: |
