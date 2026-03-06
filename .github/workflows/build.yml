@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # 更新到 v4
 
       - name: Prepare Environment
         run: |
@@ -20,16 +20,12 @@ jobs:
           # 必须安装 zstd 以支持 .tar.zst 格式解压
           sudo apt install -y build-essential libncurses-dev bc flex bison zstd
 
-      - name: Download OpenWrt 24 SDK
+      - name: Download OpenWrt SDK
         run: |
-          # 这里使用 OpenWrt 24.10.0 正式版 x86_64 架构的 SDK 作为示例
-          # 如果你的路由器是其他架构（如 aarch64, ramips），请替换下面的下载链接
-          # 链接查找地址: https://downloads.openwrt.org/releases/24.10.0/targets/
-          
+          # 注意：你下载的是 rockchip/armv8 的 SDK
           wget -O sdk.tar.zst https://downloads.openwrt.org/releases/25.12.0/targets/rockchip/armv8/openwrt-sdk-25.12.0-rockchip-armv8_gcc-14.3.0_musl.Linux-x86_64.tar.zst
 
-          # 解压 .tar.zst 文件
-          # -I zstd 指定使用 zstd 解压，或者直接使用 tar --zstd (取决于 tar 版本，Ubuntu最新版通常能自动识别)
+          # 解压
           tar -I zstd -xf sdk.tar.zst || tar --zstd -xf sdk.tar.zst
           
           # 重命名文件夹方便后续操作
@@ -38,7 +34,6 @@ jobs:
       - name: Add Package
         run: |
           # 将你的插件代码放入 SDK 的 package 目录
-          # 假设你仓库根目录下有 luci-app-autoredial 文件夹
           mkdir -p sdk/package/luci-app-autoredial
           cp -r luci-app-autoredial/* sdk/package/luci-app-autoredial/
 
@@ -53,8 +48,9 @@ jobs:
           make package/luci-app-autoredial/compile V=s
 
       - name: Upload IPK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # 【关键修改】更新到 v4
         with:
-          name: openwrt-24-ipk
-          # 注意路径，OpenWrt 24 的 SDK 输出路径结构可能有所不同，通常在 bin/packages/ 下
-          path: sdk/bin/packages/x86_64/luci/*.ipk
+          name: openwrt-rockchip-ipk
+          # 【路径修正】因为你下载的是 rockchip SDK，生成的包不在 x86_64 目录下。
+          # 使用通配符 ** 递归查找所有 ipk 文件，最为稳妥。
+          path: sdk/bin/**/*.ipk
