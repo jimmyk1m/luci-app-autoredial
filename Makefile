@@ -12,5 +12,4 @@ include $(TOPDIR)/feeds/luci/luci.mk
 define Build/Compile
 endef
 
-# call BuildPackage - OpenWrt buildance
- $(eval $(call BuildPackage,luci-app-autoredial))
+$(eval $(call BuildPackage,luci-app-autoredial))
