@@ -12,4 +12,7 @@ include $(TOPDIR)/feeds/luci/luci.mk
 define Build/Compile
 endef
 
+define Build/InstallDev
+endef
+
 $(eval $(call BuildPackage,luci-app-autoredial))
