@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # 允许手动点击按钮编译
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,45 +12,39 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4 # 更新到 v4
+        uses: actions/checkout@v4
 
       - name: Prepare Environment
         run: |
           sudo apt update
-          # 必须安装 zstd 以支持 .tar.zst 格式解压
           sudo apt install -y build-essential libncurses-dev bc flex bison zstd
 
       - name: Download OpenWrt SDK
         run: |
-          # 注意：你下载的是 rockchip/armv8 的 SDK
           wget -O sdk.tar.zst https://downloads.openwrt.org/releases/25.12.0/targets/rockchip/armv8/openwrt-sdk-25.12.0-rockchip-armv8_gcc-14.3.0_musl.Linux-x86_64.tar.zst
-
-          # 解压
           tar -I zstd -xf sdk.tar.zst || tar --zstd -xf sdk.tar.zst
-          
-          # 重命名文件夹方便后续操作
           mv openwrt-sdk-* sdk
 
       - name: Add Package
         run: |
-          # 将你的插件代码放入 SDK 的 package 目录
+          # 1. 在 SDK 中创建插件目录
           mkdir -p sdk/package/luci-app-autoredial
-          cp -r luci-app-autoredial/* sdk/package/luci-app-autoredial/
+          
+          # 2. 将仓库根目录下的所有文件复制到 SDK 插件目录中
+          # 解释：因为你的代码在根目录，所以我们要复制当前目录(.)的内容
+          # 排除 sdk 文件夹本身，防止递归复制
+          find . -maxdepth 1 ! -name '.' ! -name 'sdk' ! -name '.git' ! -name '.github' -exec cp -r {} sdk/package/luci-app-autoredial/ \;
 
       - name: Compile
         working-directory: ./sdk
         run: |
-          # 编译前准备
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          
-          # 开始编译插件
           make package/luci-app-autoredial/compile V=s
 
       - name: Upload IPK
-        uses: actions/upload-artifact@v4 # 【关键修改】更新到 v4
+        uses: actions/upload-artifact@v4
         with:
           name: openwrt-rockchip-ipk
-          # 【路径修正】因为你下载的是 rockchip SDK，生成的包不在 x86_64 目录下。
-          # 使用通配符 ** 递归查找所有 ipk 文件，最为稳妥。
+          # 使用通配符 ** 自动查找生成的 ipk 文件
           path: sdk/bin/**/*.ipk
