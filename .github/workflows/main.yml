@@ -43,14 +43,6 @@ jobs:
           pip3 install --upgrade pip
           pip3 install po2lmo
 
-      - name: Download Legacy OpenWrt SDK
-        run: |
-          mkdir -p /tmp/SDK
-          curl -SLk --connect-timeout 30 --retry 2 \
-            "${{ inputs.sdk-url || github.event.inputs.sdk-url }}" \
-            -o /tmp/SDK.tar.bz2
-          tar xjf /tmp/SDK.tar.bz2 --strip-components=1 -C /tmp/SDK
-
       - name: Download Snapshot OpenWrt SDK
         run: |
           mkdir -p /tmp/SNAPSDK
@@ -63,20 +55,8 @@ jobs:
       - name: Copy source into SDKs
         run: |
           PKG_NAME="${{ steps.get_info.outputs.pkg_name }}"
-          mkdir -p /tmp/SDK/package/${PKG_NAME}
           mkdir -p /tmp/SNAPSDK/package/${PKG_NAME}
-          rsync -avh --exclude='.git' . /tmp/SDK/package/${PKG_NAME}
           rsync -avh --exclude='.git' . /tmp/SNAPSDK/package/${PKG_NAME}
-
-      - name: Compile IPK with Legacy SDK
-        run: |
-          cd /tmp/SDK
-          PKG_NAME="${{ steps.get_info.outputs.pkg_name }}"
-          ./scripts/feeds update -a
-          ./scripts/feeds install ${PKG_NAME}
-          echo "CONFIG_PACKAGE_${PKG_NAME}=y" > .config
-          make defconfig
-          make package/${PKG_NAME}/compile V=99
 
       - name: Compile APK with Snapshot SDK
         run: |
@@ -92,9 +72,6 @@ jobs:
         run: |
           mkdir -p artifacts
           PKG_NAME="${{ steps.get_info.outputs.pkg_name }}"
-          
-          echo "Searching for IPK..."
-          find /tmp/SDK/bin -name "${PKG_NAME}*.ipk" -exec cp {} "./artifacts/" \;
           
           echo "Searching for APK..."
           find /tmp/SNAPSDK/bin -name "${PKG_NAME}*.apk" -exec cp {} "./artifacts/" \;
